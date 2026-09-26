@@ -1,140 +1,123 @@
-import { type FormEvent, useState } from 'react'
-import { AuthCard, Field } from '../components/AuthCard'
-import { CapIcon, UserIcon } from '../components/icons'
-import { SUCS } from '../data/mock'
+import { useState } from 'react'
 import * as api from '../lib/api'
 import { navigate } from '../lib/router'
 import { useSession } from '../lib/session'
 
 export function RegisterPage() {
   const { refresh } = useSession()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    const username = String(data.get('username') ?? '')
-    const password = String(data.get('password') ?? '')
-    const program = String(data.get('program') ?? '')
-    const suc = String(data.get('suc') ?? '')
-    const yearLevel = String(data.get('yearLevel') ?? 'Undergraduate')
-
-    if (!suc) {
-      setError('Please select your State University or College (SUC).')
-      return
-    }
+    setError('')
 
     try {
-      await api.register({ username, password, program, suc, yearLevel })
+      const [firstName, ...rest] = fullName.trim().split(/\s+/)
+      const profile = api.register({
+        username,
+        password,
+        firstName,
+        lastName: rest.join(' '),
+      })
+
       refresh()
-      navigate({ name: 'match' })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not complete registration.')
+      if (profile) navigate({ name: 'match' })
+    } catch {
+      setError('That username is already taken or the fields are incomplete.')
     }
   }
 
   return (
-    <AuthCard
-      title="Create Iskolar Account"
-      subtitle="Join verified scholars looking for dates & study buddies"
-      error={error}
-      onSubmit={onSubmit}
-      footer={
-        <div className="flex flex-col items-center gap-2">
-          <p>
-            Already have an account?{' '}
-            <button
-              type="button"
-              className="font-bold text-brand-500 hover:text-brand-600 hover:underline"
-              onClick={() => navigate({ name: 'signin' })}
-            >
-              Sign In
-            </button>
-          </p>
+    <div className="flex min-h-full items-center justify-center bg-slate-50 p-5">
+      <div className="w-full max-w-sm rounded-[28px] border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/50">
+        <div className="mb-6 text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-600">New account</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Register</h1>
+        </div>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="fullName" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Full name
+            </label>
+            <input
+              id="fullName"
+              value={fullName}
+              onChange={(event) => setFullName(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:bg-white"
+              placeholder="Juan Dela Cruz"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="username" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Username
+            </label>
+            <input
+              id="username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:bg-white"
+              placeholder="juan123"
+              autoComplete="username"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:bg-white"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              required
+            />
+          </div>
+
+          {error ? (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600"
+          >
+            Create account
+          </button>
+        </form>
+
+        <div className="mt-5 text-center text-xs text-slate-500">
+          Already have an account?{' '}
           <button
             type="button"
-            onClick={() => navigate({ name: 'landing' })}
-            className="text-xs text-slate-400 hover:text-slate-600"
+            onClick={() => navigate({ name: 'signin' })}
+            className="font-bold text-brand-600 underline-offset-2 hover:underline"
           >
-            ← Back to Home
+            Log in
           </button>
-        </div>
-      }
-    >
-      <Field
-        name="username"
-        label="Username"
-        placeholder="Choose a scholar handle"
-        autoComplete="username"
-        required
-        icon={<UserIcon className="h-4 w-4" />}
-      />
-
-      <Field
-        name="password"
-        type="password"
-        label="Password"
-        placeholder="Create a secure password"
-        autoComplete="new-password"
-        required
-      />
-
-      {/* SUC Select */}
-      <div className="flex flex-col gap-1.5 text-left">
-        <label className="text-xs font-semibold text-slate-700">
-          State University / College (SUC) <span className="text-rose-500">*</span>
-        </label>
-        <div className="relative">
-          <select
-            name="suc"
-            defaultValue=""
-            required
-            className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 transition-all focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
-          >
-            <option value="" disabled>
-              Select your campus
-            </option>
-            {SUCS.map((suc) => (
-              <option key={suc} value={suc}>
-                {suc}
-              </option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-            ▼
-          </span>
+          <div className="flex justify-center items-center">
+            <button
+              type="button"
+              onClick={() => navigate({ name: "landing"})}
+              className="mt-2 text-xs text-brand-500 font-bold hover:underline"
+            >
+              Back to home
+            </button>
+          </div>
         </div>
       </div>
-
-      <Field
-        name="program"
-        label="Academic Program / Degree"
-        placeholder="e.g. BS Computer Science, BA Communication"
-        required
-        icon={<CapIcon className="h-4 w-4" />}
-      />
-
-      {/* Year Level */}
-      <div className="flex flex-col gap-1.5 text-left">
-        <label className="text-xs font-semibold text-slate-700">Year Level</label>
-        <div className="relative">
-          <select
-            name="yearLevel"
-            defaultValue="3rd Year"
-            className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-900 transition-all focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20"
-          >
-            <option value="1st Year (Freshie)">1st Year (Freshie)</option>
-            <option value="2nd Year (Sophomore)">2nd Year (Sophomore)</option>
-            <option value="3rd Year (Junior)">3rd Year (Junior)</option>
-            <option value="4th Year (Senior)">4th Year (Senior)</option>
-            <option value="Graduating Batch">Graduating Batch</option>
-            <option value="Graduate / Masteral">Graduate / Masteral</option>
-          </select>
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-            ▼
-          </span>
-        </div>
-      </div>
-    </AuthCard>
+    </div>
   )
 }

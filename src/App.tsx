@@ -1,30 +1,24 @@
+import { useEffect } from 'react'
 import { PhoneShell } from './components/PhoneShell'
-import { SessionProvider, useSession } from './lib/session'
 import { useRoute } from './lib/router'
+import { SessionProvider } from './lib/session'
 import { LandingPage } from './pages/Landing'
-import { SignInPage } from './pages/SignIn'
-import { RegisterPage } from './pages/Register'
 import { MatchPage } from './pages/Match'
 import { ChatPage } from './pages/Chat'
 import { ProfilePage } from './pages/Profile'
+import { RegisterPage } from './pages/Register'
+import { SignInPage } from './pages/SignIn'
 import {
   AboutPage,
   DeveloperPage,
   SearchPage,
   TalkToDevPage,
 } from './pages/InfoPages'
-import type { Route } from './lib/types'
 
 function Screen() {
   const { route } = useRoute()
-  const { user } = useSession()
 
-  const guarded: Route =
-    (route.name === 'match' || route.name === 'chat' || route.name === 'profile') && !user
-      ? { name: 'signin' }
-      : route
-
-  switch (guarded.name) {
+  switch (route.name) {
     case 'landing':
       return <LandingPage />
     case 'signin':
@@ -34,7 +28,7 @@ function Screen() {
     case 'match':
       return <MatchPage />
     case 'chat':
-      return <ChatPage userId={guarded.userId} />
+      return <ChatPage userId={route.userId} />
     case 'profile':
       return <ProfilePage />
     case 'about':
@@ -49,6 +43,16 @@ function Screen() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const root = document.documentElement
+    const stored = localStorage.getItem('iskomeet-theme')
+    const preferredDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isDark = stored ? stored === 'dark' : preferredDark
+
+    root.classList.toggle('dark', isDark)
+    root.style.colorScheme = isDark ? 'dark' : 'light'
+  }, [])
+
   return (
     <SessionProvider>
       <PhoneShell>

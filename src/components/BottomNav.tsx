@@ -1,7 +1,7 @@
 import { FlameIcon, SearchIcon, ChatBubbleIcon, UserIcon } from './icons'
 import { navigate, useRoute } from '../lib/router'
-import { useSession } from '../lib/session'
 import * as api from '../lib/api'
+import { useSession } from '../lib/session'
 
 export function BottomNav() {
   const { user } = useSession()

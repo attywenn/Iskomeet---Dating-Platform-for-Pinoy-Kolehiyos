@@ -8,12 +8,12 @@ export function parseHash(hash: string): Route {
   if (parts.length === 0) return { name: 'landing' }
 
   switch (parts[0]) {
+    case 'match':
+      return { name: 'match' }
     case 'signin':
       return { name: 'signin' }
     case 'register':
       return { name: 'register' }
-    case 'match':
-      return { name: 'match' }
     case 'about':
       return { name: 'about' }
     case 'developer':
@@ -34,6 +34,8 @@ export function parseHash(hash: string): Route {
 
 export function toHash(route: Route) {
   if (route.name === 'landing') return '#/'
+  if (route.name === 'signin') return '#/signin'
+  if (route.name === 'register') return '#/register'
   if (route.name === 'chat') return `#/chat/${route.userId}`
   return `#/${route.name}`
 }

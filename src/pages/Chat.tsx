@@ -15,6 +15,8 @@ type Props = {
   userId: string
 }
 
+const guestUserName = 'Guest Scholar'
+
 export function ChatPage({ userId }: Props) {
   const { user } = useSession()
   const [profile, setProfile] = useState<Profile | undefined>()
@@ -34,6 +36,7 @@ export function ChatPage({ userId }: Props) {
       navigate({ name: 'signin' })
       return
     }
+
     void (async () => {
       const [found, all] = await Promise.all([
         api.getProfile(userId),
@@ -42,17 +45,19 @@ export function ChatPage({ userId }: Props) {
       setProfile(found)
       setAllProfiles(all)
       if (!found) return
-      const convo = await api.openConversation(userId, user, found)
+      const convo = await api.openConversation(userId, guestUserName, found)
       setMessages(convo.messages)
       setTimeout(scrollToBottom, 100)
     })()
   }, [user, userId])
 
+  if (!user) return null
+
   useEffect(() => {
     scrollToBottom()
   }, [messages, typing])
 
-  if (!user) return null
+  const profileCampus = profile?.universityName ?? profile?.suc ?? 'University'
 
   async function onSend(event: FormEvent) {
     event.preventDefault()
@@ -63,7 +68,6 @@ export function ChatPage({ userId }: Props) {
     const convo = await api.sendMessage(userId, text)
     setMessages(convo.messages)
 
-    // Simulate smart persona reply with realistic typing indicator
     setTyping(true)
     const delay = 1200 + Math.random() * 800
     window.setTimeout(() => {
@@ -86,15 +90,14 @@ export function ChatPage({ userId }: Props) {
   }
 
   const icebreakers = [
-    '☕ Coffee run sa library?',
-    '🍢 Comfort street food around campus?',
-    '📚 Surviving pa ba midterms?',
-    '🎧 What music are you listening to lately?',
+    'Would you like to take a short coffee break?',
+    'Do you have a favorite place around campus?',
+    'How is your week going so far?',
+    'What music are you listening to lately?',
   ]
 
   return (
     <div className="relative flex h-full min-h-full flex-col bg-slate-50">
-      {/* Top Header */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-100 bg-white/95 px-3 backdrop-blur-md">
         <div className="flex items-center gap-2">
           <button
@@ -106,7 +109,6 @@ export function ChatPage({ userId }: Props) {
             <BackArrow className="h-5 w-5" />
           </button>
 
-          {/* User Profile Mini Header */}
           {profile ? (
             <button
               type="button"
@@ -126,7 +128,7 @@ export function ChatPage({ userId }: Props) {
                   {profile.verified ? <VerifiedBadgeIcon className="h-4 w-4 text-sky-500" /> : null}
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                  <span className="truncate max-w-[140px] text-brand-600 font-semibold">{profile.suc.split(' ')[0]}</span>
+                  <span className="truncate max-w-[140px] text-brand-600 font-semibold">{profileCampus.split(' ')[0]}</span>
                   <span>•</span>
                   <span>{typing ? 'Typing...' : profile.online ? 'Active now' : profile.lastSeen || 'Offline'}</span>
                 </div>
@@ -135,7 +137,6 @@ export function ChatPage({ userId }: Props) {
           ) : null}
         </div>
 
-        {/* Profile Info Button */}
         {profile ? (
           <button
             type="button"
@@ -152,7 +153,6 @@ export function ChatPage({ userId }: Props) {
         ) : null}
       </header>
 
-      {/* Quick Matches switcher bar at top */}
       <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-100 bg-white/70 px-4 py-2 text-xs no-scrollbar">
         <span className="shrink-0 font-bold uppercase tracking-wider text-[10px] text-slate-400">Scholars:</span>
         {allProfiles.map((p) => (
@@ -173,14 +173,13 @@ export function ChatPage({ userId }: Props) {
         ))}
       </div>
 
-      {/* Slide-out Scholar Quick Bio Drawer */}
       {infoOpen && profile ? (
         <div className="border-b border-slate-200 bg-white p-4 shadow-md transition-all">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">{profile.name}, {profile.age}</h3>
-              <p className="text-xs text-brand-600 font-medium">{profile.suc}</p>
-              <p className="text-xs text-slate-500">{profile.program} • {profile.yearLevel}</p>
+              <h3 className="text-sm font-bold text-slate-900">{profile.name}, {profile.age ?? 22}</h3>
+              <p className="text-xs text-brand-600 font-medium">{profileCampus}</p>
+              <p className="text-xs text-slate-500">{profile.program ?? 'Student'} • {profile.yearLevel ?? 'Student'}</p>
             </div>
             <button
               type="button"
@@ -190,7 +189,7 @@ export function ChatPage({ userId }: Props) {
               Full Card →
             </button>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-slate-600 italic font-normal">&ldquo;{profile.bio}&rdquo;</p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-600 italic font-normal">&ldquo;{profile.bio ?? 'Student profile'}&rdquo;</p>
           <div className="mt-2 flex flex-wrap gap-1">
             {profile.interests?.map((item) => (
               <span key={item} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
@@ -201,9 +200,7 @@ export function ChatPage({ userId }: Props) {
         </div>
       ) : null}
 
-      {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {/* Campus Connection Header Banner */}
         {profile ? (
           <div className="my-2 flex flex-col items-center justify-center text-center">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md">
@@ -248,14 +245,14 @@ export function ChatPage({ userId }: Props) {
                 <CheckCheckIcon className="h-3.5 w-3.5 text-brand-500" />
               ) : null}
 
-              {/* Quick emoji reaction on hover */}
+              {/* Quick reaction on hover */}
               <div className="hidden group-hover:flex items-center gap-1 ml-2">
-                {['❤️', '😂', '🔥'].map((emoji) => (
+                {['Like', 'Laugh', 'Fire'].map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => handleReaction(message.id, emoji)}
-                    className="hover:scale-125 transition-transform text-[11px]"
+                    className="hover:scale-125 transition-transform text-[10px] font-semibold text-slate-500"
                   >
                     {emoji}
                   </button>

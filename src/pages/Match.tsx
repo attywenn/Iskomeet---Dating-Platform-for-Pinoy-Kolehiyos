@@ -31,11 +31,11 @@ export function MatchPage() {
   const [actionFeedback, setActionFeedback] = useState<'like' | 'pass' | 'superlike' | null>(null)
 
   useEffect(() => {
+    if (!user) {
+      navigate({ name: 'signin' })
+      return
+    }
     void api.getProfiles().then(setProfiles)
-  }, [])
-
-  useEffect(() => {
-    if (!user) navigate({ name: 'signin' })
   }, [user])
 
   if (!user) return null
@@ -50,7 +50,6 @@ export function MatchPage() {
     const updated = api.toggleLike(profile.id)
     setLikes(updated)
 
-    // Trigger match celebration on like
     setTimeout(() => {
       setMatchedProfile(profile)
       setMatchModalOpen(true)
@@ -86,11 +85,12 @@ export function MatchPage() {
     }
   }
 
-  const campusColor = profile ? SUC_COLORS[profile.suc] || { bg: 'bg-rose-50', text: 'text-brand-600', badge: 'bg-brand-500 text-white', short: profile.suc.slice(0, 4) } : null
+  const campusName = profile ? (profile.universityName ?? profile.suc ?? 'University') : 'University'
+  const campusColor = profile ? (SUC_COLORS[campusName] ?? { bg: 'bg-rose-50', text: 'text-brand-600', badge: 'bg-brand-500 text-white', short: campusName.slice(0, 4) }) : null
+  const profileCampus = profile?.universityName ?? profile?.suc ?? 'Campus'
 
   return (
     <div className="relative flex min-h-full flex-col bg-slate-50">
-      {/* App Top Bar */}
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-100 bg-white px-4">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500 text-white shadow-sm">
@@ -114,11 +114,9 @@ export function MatchPage() {
         </div>
       </header>
 
-      {/* Main Discover Card Canvas */}
       <div className="flex flex-1 flex-col px-4 py-3">
         {profile ? (
           <div className="relative flex flex-1 flex-col overflow-hidden rounded-3xl bg-white shadow-xl shadow-slate-900/8 border border-slate-100">
-            {/* Action Feedback Stamp Overlay */}
             {actionFeedback ? (
               <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-slate-950/20 backdrop-blur-[2px]">
                 {actionFeedback === 'like' && (
@@ -139,15 +137,13 @@ export function MatchPage() {
               </div>
             ) : null}
 
-            {/* Photo Container */}
             <div className="relative h-[390px] w-full shrink-0 overflow-hidden bg-slate-900">
               <img
                 src={photos[currentPhotoIndex] || profile.avatar}
-                alt={`${profile.name}, student at ${profile.suc}`}
+                alt={`${profile.name}, student at ${profileCampus}`}
                 className="h-full w-full object-cover object-center transition-all duration-300"
               />
 
-              {/* Photo Tap Navigation (left/right halves) */}
               {photos.length > 1 ? (
                 <>
                   <button
@@ -163,7 +159,6 @@ export function MatchPage() {
                     className="absolute right-0 top-0 h-full w-1/3 cursor-pointer"
                   />
 
-                  {/* Photo Progress Indicators */}
                   <div className="absolute top-3 inset-x-3 z-10 flex gap-1.5">
                     {photos.map((_, i) => (
                       <div
@@ -177,10 +172,8 @@ export function MatchPage() {
                 </>
               ) : null}
 
-              {/* Gradient Scrim for text readability */}
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
 
-              {/* University Badge on Photo */}
               <div className="absolute top-4 left-3 z-10">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold shadow-md backdrop-blur-md ${
@@ -192,7 +185,6 @@ export function MatchPage() {
                 </span>
               </div>
 
-              {/* Online Pulse Badge */}
               {profile.online ? (
                 <div className="absolute top-4 right-3 z-10 flex items-center gap-1.5 rounded-full bg-emerald-950/70 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 backdrop-blur-md border border-emerald-500/30">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -200,10 +192,9 @@ export function MatchPage() {
                 </div>
               ) : null}
 
-              {/* Primary Scholar Name & Campus info on card */}
               <div className="absolute bottom-4 inset-x-4 z-10 text-white">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-black tracking-tight">{profile.name}, {profile.age}</h2>
+                  <h2 className="text-2xl font-black tracking-tight">{profile.name}, {profile.age ?? 22}</h2>
                   {profile.verified ? (
                     <VerifiedBadgeIcon className="h-6 w-6 text-sky-400 shrink-0" />
                   ) : null}
@@ -211,13 +202,13 @@ export function MatchPage() {
 
                 <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-slate-200">
                   <CapIcon className="h-4 w-4 shrink-0 text-amber-300" />
-                  <span className="truncate">{profile.program}</span>
+                  <span className="truncate">{profile.program ?? 'Student'}</span>
                 </div>
 
                 <div className="mt-1 flex items-center justify-between text-xs text-slate-300">
                   <div className="flex items-center gap-1">
                     <MapPinIcon className="h-3.5 w-3.5 text-rose-400" />
-                    <span>{profile.distance || profile.suc}</span>
+                    <span>{profile.distance || profileCampus}</span>
                   </div>
                   <button
                     type="button"
@@ -230,27 +221,23 @@ export function MatchPage() {
               </div>
             </div>
 
-            {/* Profile Content Details */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Scholar Bio */}
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">About Scholar</p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-700 font-medium">{profile.bio}</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-700 font-medium">{profile.bio ?? 'Student profile'}</p>
               </div>
 
-              {/* University Campus Badge */}
               <div className="flex items-center gap-2.5 rounded-2xl bg-slate-50 p-3 border border-slate-100">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border border-slate-200 text-brand-600">
                   <CapIcon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Campus & College</p>
-                  <p className="truncate text-xs font-bold text-slate-900">{profile.suc}</p>
-                  <p className="text-[11px] font-medium text-brand-600">{profile.yearLevel}</p>
+                  <p className="truncate text-xs font-bold text-slate-900">{profileCampus}</p>
+                  <p className="text-[11px] font-medium text-brand-600">{profile.yearLevel ?? 'Student'}</p>
                 </div>
               </div>
 
-              {/* Interest Pills */}
               {profile.interests && profile.interests.length > 0 ? (
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Vibes & Interests</p>
@@ -277,7 +264,6 @@ export function MatchPage() {
                 </div>
               ) : null}
 
-              {/* Hinge-style Prompts */}
               {profile.prompts && profile.prompts.length > 0 ? (
                 <div className="space-y-3 pt-1">
                   {profile.prompts.map((prompt, pIdx) => (
@@ -298,9 +284,7 @@ export function MatchPage() {
               ) : null}
             </div>
 
-            {/* Modern Floating Action Controls Bar */}
             <div className="sticky bottom-0 z-20 flex items-center justify-around border-t border-slate-100 bg-white/95 px-6 py-3.5 backdrop-blur-md">
-              {/* Rewind */}
               <button
                 type="button"
                 aria-label="Rewind to previous scholar"
@@ -310,7 +294,6 @@ export function MatchPage() {
                 <RewindIcon className="h-5 w-5" />
               </button>
 
-              {/* Pass (Dislike) */}
               <button
                 type="button"
                 aria-label="Pass"
@@ -320,7 +303,6 @@ export function MatchPage() {
                 <CloseIcon className="h-7 w-7 stroke-[2.5]" />
               </button>
 
-              {/* Super Like (Star Spark) */}
               <button
                 type="button"
                 aria-label="Super Like"
@@ -330,7 +312,6 @@ export function MatchPage() {
                 <StarSparkIcon className="h-5 w-5" />
               </button>
 
-              {/* Like (Heart) */}
               <button
                 type="button"
                 aria-label="Like"
@@ -344,22 +325,20 @@ export function MatchPage() {
                 <HeartIcon className="h-7 w-7 fill-white" />
               </button>
 
-              {/* Direct Chat / First Move */}
               <button
                 type="button"
                 aria-label="Chat with scholar"
                 onClick={() => navigate({ name: 'chat', userId: profile.id })}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-brand-600 shadow-sm border border-rose-200 transition-all hover:bg-rose-100 hover:scale-105 active:scale-90"
               >
-                <span className="text-sm font-black">💬</span>
+                <span className="text-xs font-black">Chat</span>
               </button>
             </div>
           </div>
         ) : (
-          /* Empty State when stack ends */
           <div className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-brand-500 text-3xl shadow-inner">
-              🎓
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-brand-500 text-2xl font-black shadow-inner">
+              End
             </div>
             <h2 className="mt-4 text-xl font-bold text-slate-900">You&apos;ve seen everyone!</h2>
             <p className="mt-2 text-xs leading-relaxed text-slate-500 max-w-[260px]">
@@ -378,18 +357,16 @@ export function MatchPage() {
                 onClick={() => navigate({ name: 'search' })}
                 className="w-full rounded-2xl bg-slate-100 py-3 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-all"
               >
-                🔍 Search Campus Hub
+                Search Campus Hub
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Match Celebration Modal */}
       {matchModalOpen && matchedProfile ? (
         <MatchCelebrationModal
           profile={matchedProfile}
-          user={user}
           onClose={() => {
             setMatchModalOpen(false)
             setIndex((curr) => (curr + 1) % profiles.length)
@@ -413,21 +390,19 @@ export function MatchPage() {
 
 function MatchCelebrationModal({
   profile,
-  user,
   onClose,
   onChat,
 }: {
   profile: Profile
-  user: any
   onClose: () => void
   onChat: (text?: string) => void
 }) {
   const [selectedIcebreaker, setSelectedIcebreaker] = useState('')
 
   const icebreakers = [
-    `Hi ${profile.name.split(' ')[0]}! What's your go-to study drink around ${profile.suc.split(' ')[0]}? ☕`,
-    `Hello! Relate so much on the midterms grind! Surviving ka pa ba? 📚`,
-    `Hey ${profile.name.split(' ')[0]}! Loved your profile prompts, great taste in OPM! 🎸`,
+    `Hi ${profile.name.split(' ')[0]}. What is your favorite place around ${(profile.universityName ?? profile.suc ?? 'campus').split(' ')[0]}?`,
+    `Hello. I enjoy talking about routines and interests. What do you usually do in your free time?`,
+    `Hi ${profile.name.split(' ')[0]}. I am glad to connect. What is one thing you enjoy doing most?`,
   ]
 
   return (
@@ -437,9 +412,8 @@ function MatchCelebrationModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md animate-fadeIn"
     >
       <div className="relative flex w-full max-w-[360px] flex-col items-center overflow-hidden rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-rose-950 p-6 text-center text-white shadow-2xl border border-rose-500/20">
-        {/* Floating Confetti / Sparkle visual */}
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-2xl shadow-lg shadow-rose-500/40 animate-bounce-subtle">
-          🎉
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-500 to-amber-400 text-xl font-black text-white shadow-lg shadow-rose-500/40 animate-bounce-subtle">
+          Match
         </div>
 
         <p className="mt-3 text-xs font-extrabold uppercase tracking-widest text-amber-300">
@@ -450,17 +424,16 @@ function MatchCelebrationModal({
           You and <span className="font-bold text-rose-300">{profile.name}</span> liked each other.
         </p>
 
-        {/* Side-by-side Avatar Match Circle */}
         <div className="my-6 flex items-center justify-center">
           <div className="relative -mr-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl">
             <img
-              src={user?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80'}
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80"
               alt="You"
               className="h-full w-full object-cover"
             />
           </div>
           <div className="z-10 flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-white font-bold shadow-lg ring-4 ring-slate-900">
-            ❤️
+            Like
           </div>
           <div className="relative -ml-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl">
             <img
@@ -471,7 +444,6 @@ function MatchCelebrationModal({
           </div>
         </div>
 
-        {/* Quick Icebreaker Picker */}
         <div className="w-full text-left">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
             Send an Iskolar Icebreaker:
@@ -494,14 +466,13 @@ function MatchCelebrationModal({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="mt-6 flex w-full flex-col gap-2.5">
           <button
             type="button"
             onClick={() => onChat(selectedIcebreaker)}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand-500 to-rose-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-rose-500/30 hover:opacity-95 active:scale-95 transition-all"
           >
-            <span>💬 Send Message Now</span>
+            <span>Send Message</span>
           </button>
           <button
             type="button"

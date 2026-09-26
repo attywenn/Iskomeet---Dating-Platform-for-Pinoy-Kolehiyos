@@ -16,7 +16,7 @@ export function AboutPage() {
         <div className="rounded-2xl bg-rose-50/60 p-4 border border-rose-100">
           <h3 className="text-xs font-bold text-brand-600 uppercase tracking-wider">Our Mission</h3>
           <p className="mt-1 text-xs text-slate-700">
-            To provide a wholesome, safe, and authentic space where students under state scholarships can meet potential partners, study buddies, and lifelong companions who share the same values, struggles, and passion for national service.
+            To provide a wholesonme, safe, and authentic space where students under state scholarships can meet potential partners, study buddies, and lifelong companions who share the same values, struggles, and passion for national service.
           </p>
         </div>
 

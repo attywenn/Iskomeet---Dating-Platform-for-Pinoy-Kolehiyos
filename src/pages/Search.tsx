@@ -28,15 +28,17 @@ export function SearchPage() {
 
   // Filter scholars based on query, campus, and online status
   const filteredProfiles = profiles.filter((p) => {
+    const campusName = p.universityName ?? p.suc ?? ''
+    const programName = p.program ?? ''
     const matchesQuery =
       searchQuery.trim() === '' ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.program.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.suc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      programName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      campusName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.interests && p.interests.some((i) => i.toLowerCase().includes(searchQuery.toLowerCase())))
 
     const matchesCampus =
-      selectedCampus === 'all' || p.suc.toLowerCase().includes(selectedCampus.toLowerCase())
+      selectedCampus === 'all' || campusName.toLowerCase().includes(selectedCampus.toLowerCase())
 
     const matchesOnline = !onlineOnly || p.online
 
@@ -128,7 +130,8 @@ export function SearchPage() {
           <div className="grid grid-cols-2 gap-3">
             {filteredProfiles.map((item) => {
               const isLiked = likes.includes(item.id)
-              const campusColor = SUC_COLORS[item.suc]
+              const campusName = item.universityName ?? item.suc ?? 'University'
+              const campusColor = SUC_COLORS[campusName] ?? { bg: 'bg-rose-50', text: 'text-brand-600', badge: 'bg-brand-500 text-white', short: 'Campus' }
 
               return (
                 <div
@@ -170,7 +173,7 @@ export function SearchPage() {
                           <VerifiedBadgeIcon className="h-3.5 w-3.5 text-sky-400 shrink-0" />
                         ) : null}
                       </div>
-                      <p className="truncate text-[10px] text-slate-300 font-medium">{item.program}</p>
+                      <p className="truncate text-[10px] text-slate-300 font-medium">{item.program ?? 'Student'}</p>
                     </div>
                   </div>
 
@@ -204,8 +207,7 @@ export function SearchPage() {
           </div>
         ) : (
           <div className="mt-12 flex flex-col items-center justify-center text-center p-6 bg-white rounded-3xl border border-slate-100">
-            <span className="text-3xl">🔍</span>
-            <p className="mt-3 text-sm font-bold text-slate-900">No scholars match your filter</p>
+            <p className="text-sm font-bold text-slate-900">No scholars match your filter</p>
             <p className="mt-1 text-xs text-slate-500">Try choosing a different campus or clearing your search term.</p>
             <button
               type="button"

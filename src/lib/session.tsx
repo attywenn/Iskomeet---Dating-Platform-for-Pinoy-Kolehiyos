@@ -29,14 +29,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const value = useMemo(
-    () => ({ user, refresh, signOut }),
-    [user, refresh, signOut],
-  )
+  const value = useMemo(() => ({ user, refresh, signOut }), [user, refresh, signOut])
 
-  return (
-    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
-  )
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }
 
 export function useSession() {

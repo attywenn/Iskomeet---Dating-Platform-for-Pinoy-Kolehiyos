@@ -1,7 +1,5 @@
 export type RouteName =
   | 'landing'
-  | 'signin'
-  | 'register'
   | 'match'
   | 'chat'
   | 'about'
@@ -9,6 +7,8 @@ export type RouteName =
   | 'talk'
   | 'search'
   | 'profile'
+  | 'signin'
+  | 'register'
 
 export type Route =
   | { name: Exclude<RouteName, 'chat'> }
@@ -17,39 +17,44 @@ export type Route =
 export type SessionUser = {
   id: string
   username: string
-  password: string
-  program: string
-  suc: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  genderId?: number
+  universityId?: number
+  universityName?: string
   avatar?: string
+  interests?: string[]
+  program?: string
+  suc?: string
   bio?: string
   yearLevel?: string
-  interests?: string[]
-}
-
-export type ProfilePrompt = {
-  question: string
-  answer: string
 }
 
 export type Profile = {
   id: string
   name: string
-  age: number
-  suc: string
-  program: string
-  yearLevel: string
+  firstName?: string
+  lastName?: string
+  genderId?: number
+  universityId?: number
+  universityName?: string
   online: boolean
   lastSeen?: string
   avatar: string
   photos: string[]
-  bio: string
   interests: string[]
+  verified?: boolean
+  age?: number
+  suc?: string
+  program?: string
+  yearLevel?: string
+  bio?: string
   mbti?: string
   zodiac?: string
-  prompts?: ProfilePrompt[]
   distance?: string
-  verified?: boolean
   campusBadge?: string
+  prompts?: { question: string; answer: string }[]
 }
 
 export type ChatMessage = {

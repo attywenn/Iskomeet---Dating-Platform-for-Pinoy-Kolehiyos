@@ -1,75 +1,78 @@
-import { DEMO_USER, PERSONA_REPLIES, PROFILES } from '../data/mock'
+import { PERSONA_REPLIES, PROFILES } from '../data/mock'
 import type { ChatMessage, Conversation, Profile, SessionUser } from './types'
-import { readJson, removeKey, writeJson } from './storage'
+import { readJson, writeJson, removeKey } from './storage'
 
-const USERS_KEY = 'users'
-const SESSION_KEY = 'session'
 const CONVOS_KEY = 'conversations'
 const LIKES_KEY = 'likes'
+const SESSION_KEY = 'session'
+const USERS_KEY = 'users'
 
-function seedUsers(): SessionUser[] {
-  const users = readJson<SessionUser[]>(USERS_KEY, [])
-  if (!users.some((user) => user.username === DEMO_USER.username)) {
-    users.push(DEMO_USER)
-    writeJson(USERS_KEY, users)
-  }
-  return users
+type StoredAccount = {
+  username: string
+  password: string
+  profile: SessionUser
 }
 
 export function getSession(): SessionUser | null {
-  seedUsers()
   return readJson<SessionUser | null>(SESSION_KEY, null)
 }
 
-export async function signIn(username: string, password: string) {
-  const users = seedUsers()
-  const found = users.find(
-    (user) => user.username.toLowerCase() === username.toLowerCase().trim() && user.password === password,
+export function signIn(username: string, password: string): SessionUser | null {
+  const users = readJson<StoredAccount[]>(USERS_KEY, [])
+  const match = users.find(
+    (entry) => entry.username.toLowerCase() === username.trim().toLowerCase() && entry.password === password,
   )
-  if (!found) {
-    throw new Error('Invalid username or password. Try username: "iskolar", password: "iskolar"')
-  }
-  writeJson(SESSION_KEY, found)
-  return found
+
+  if (!match) return null
+
+  const sessionUser = { ...match.profile }
+  writeJson(SESSION_KEY, sessionUser)
+  return sessionUser
 }
 
-export async function register(input: {
+export function register({
+  username,
+  password,
+  firstName,
+  lastName,
+  universityName,
+  suc,
+  program,
+}: {
   username: string
   password: string
-  program: string
-  suc: string
-  yearLevel?: string
-  bio?: string
-}) {
-  const users = seedUsers()
-  if (users.some((user) => user.username.toLowerCase() === input.username.toLowerCase().trim())) {
-    throw new Error('That username is already taken. Please choose another.')
-  }
-  const user: SessionUser = {
-    id: crypto.randomUUID(),
-    username: input.username.trim(),
-    password: input.password,
-    program: input.program.trim(),
-    suc: input.suc,
-    yearLevel: input.yearLevel || 'Undergraduate',
-    bio: input.bio || 'Proud Iskolar ng Bayan looking for meaningful connections & study buddies! 🎓',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
-    interests: ['☕ Coffee', '📚 Study Dates', '🎧 Music', '✨ Campus Life'],
-  }
-  users.push(user)
-  writeJson(USERS_KEY, users)
-  writeJson(SESSION_KEY, user)
-  return user
-}
+  firstName?: string
+  lastName?: string
+  universityName?: string
+  suc?: string
+  program?: string
+}): SessionUser {
+  const users = readJson<StoredAccount[]>(USERS_KEY, [])
+  const normalized = username.trim()
+  const duplicate = users.some((entry) => entry.username.toLowerCase() === normalized.toLowerCase())
 
-export function updateCurrentUser(updates: Partial<SessionUser>): SessionUser {
-  const current = getSession()
-  if (!current) throw new Error('No user logged in')
-  const updated: SessionUser = { ...current, ...updates }
-  writeJson(SESSION_KEY, updated)
-  const users = seedUsers().map((u) => (u.id === current.id ? updated : u))
+  if (!normalized || !password || duplicate) {
+    throw new Error('Username already exists or missing required fields.')
+  }
+
+  const profile: SessionUser = {
+    id: crypto.randomUUID(),
+    username: normalized,
+    firstName,
+    lastName,
+    universityName,
+    suc,
+    program,
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
+    bio: 'Campus explorer looking for a meaningful connection.',
+    yearLevel: '1st Year',
+    interests: ['Reading', 'Music', 'Coffee', 'Travel'],
+  }
+
+  users.push({ username: normalized, password, profile })
   writeJson(USERS_KEY, users)
-  return updated
+  writeJson(SESSION_KEY, profile)
+  return profile
 }
 
 export function signOut() {
@@ -115,7 +118,7 @@ export function getConversation(userId: string): Conversation {
 
 export async function openConversation(
   userId: string,
-  me: SessionUser,
+  meName: string,
   them: Profile,
 ): Promise<Conversation> {
   const existing = getConversation(userId)
@@ -128,13 +131,13 @@ export async function openConversation(
       {
         id: crypto.randomUUID(),
         from: 'me',
-        text: `Hi ${them.name.split(' ')[0]}! Great to meet a fellow scholar from ${them.suc.split(' ')[0]}! ✨`,
+        text: `Hello ${them.name.split(' ')[0]}. I am glad to meet someone from ${them.suc?.split(' ')[0] || 'campus'}.`,
         timestamp: now,
       },
       {
         id: crypto.randomUUID(),
         from: 'them',
-        text: `Hello ${me.username}! Always happy to meet someone from ${me.suc.split(' ')[0]}! How's your semester going so far? 😊`,
+        text: `Hello ${meName}. I am happy to meet someone from ${them.suc?.split(' ')[0] || 'campus'}. How are you today?`,
         timestamp: now,
       },
     ],
@@ -159,11 +162,10 @@ export async function sendMessage(userId: string, text: string): Promise<Convers
 export async function receiveReply(userId: string, _userMessageText?: string): Promise<Conversation> {
   const convo = getConversation(userId)
   const replies = PERSONA_REPLIES[userId] || [
-    'Haha agree! Campus life is wild this sem. Kamusta midterms mo? 📚',
-    'Yesss! Coffee run tayo when you are free! ☕',
-    'Love that! Keep in touch, let me know if you are around campus sometime! ✨',
+    'I agree. Campus life is busy, but it is also interesting.',
+    'I would enjoy a coffee run sometime when we are free.',
+    'I like that idea. Keep in touch and let me know when you are around campus.',
   ]
-  // Pick reply based on current count or random
   const replyIndex = convo.messages.filter((m) => m.from === 'them').length % replies.length
   const replyText = replies[replyIndex]
 
