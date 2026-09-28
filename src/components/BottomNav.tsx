@@ -4,14 +4,13 @@ import * as api from '../lib/api'
 import { useSession } from '../lib/session'
 
 export function BottomNav() {
-  const { user } = useSession()
+  const { user, signOut } = useSession()
   const { route } = useRoute()
 
   if (!user) return null
 
-  // Check how many conversations or likes we have
+  // Check how many conversations we have
   const convos = api.getConversations()
-  const unreadMessagesCount = convos.reduce((acc, c) => acc + c.messages.length, 0)
 
   const currentTab =
     route.name === 'match'
@@ -20,13 +19,18 @@ export function BottomNav() {
       ? 'search'
       : route.name === 'chat'
       ? 'chat'
-      : route.name === 'profile'
+      : route.name === 'profile' || route.name === 'settings'
       ? 'profile'
       : ''
 
   // Only show bottom nav on main app screens
-  if (!['match', 'search', 'chat', 'profile'].includes(route.name)) {
+  if (!['match', 'search', 'chat', 'profile', 'settings'].includes(route.name)) {
     return null
+  }
+
+  function handleLogout() {
+    signOut()
+    navigate({ name: 'landing' })
   }
 
   return (
@@ -78,10 +82,9 @@ export function BottomNav() {
 
       <button
         type="button"
-        aria-label="Messages and Matches"
+        aria-label="Messages"
         aria-current={currentTab === 'chat' ? 'page' : undefined}
         onClick={() => {
-          // If already in a specific chat, stay or navigate to match
           if (convos.length > 0) {
             navigate({ name: 'chat', userId: convos[0].userId })
           } else {
@@ -100,11 +103,6 @@ export function BottomNav() {
           }`}
         >
           <ChatBubbleIcon className="h-5 w-5" />
-          {unreadMessagesCount > 0 ? (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9px] font-bold text-white ring-2 ring-white">
-              {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-            </span>
-          ) : null}
         </div>
         <span className="text-[11px] font-medium tracking-tight">Messages</span>
       </button>
@@ -128,6 +126,31 @@ export function BottomNav() {
           <UserIcon className="h-5 w-5" />
         </div>
         <span className="text-[11px] font-medium tracking-tight">Profile</span>
+      </button>
+
+      <button
+        type="button"
+        aria-label="Log out"
+        onClick={handleLogout}
+        className="group flex flex-1 flex-col items-center justify-center py-1 transition-all text-slate-400 hover:text-rose-500"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl transition-all group-hover:bg-rose-50">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </div>
+        <span className="text-[11px] font-medium tracking-tight">Log out</span>
       </button>
     </nav>
   )

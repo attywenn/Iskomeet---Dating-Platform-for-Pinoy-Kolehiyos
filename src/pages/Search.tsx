@@ -5,7 +5,7 @@ import {
   SearchIcon,
   VerifiedBadgeIcon,
 } from '../components/icons'
-import { SUC_COLORS } from '../data/mock'
+import { SUC_COLORS } from '../data/site-content'
 import * as api from '../lib/api'
 import { navigate } from '../lib/router'
 import type { Profile } from '../lib/types'

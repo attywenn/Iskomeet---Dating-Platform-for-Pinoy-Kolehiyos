@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { APP_NAME } from '../data/mock'
+import { APP_NAME } from '../data/site-content'
 import { BackArrow, FlameIcon, SendIcon } from '../components/icons'
 import { navigate } from '../lib/router'
 

@@ -7,12 +7,22 @@ export type RouteName =
   | 'talk'
   | 'search'
   | 'profile'
+  | 'settings'
   | 'signin'
   | 'register'
 
 export type Route =
   | { name: Exclude<RouteName, 'chat'> }
   | { name: 'chat'; userId: string }
+
+export type SettingsChangelog = {
+  nameChangedAt?: string
+  passwordChangedAt?: string
+  usernameChangedAt?: string
+  universityChangedAt?: string
+  locationChangedAt?: string
+  interestsChangedAt?: string
+}
 
 export type SessionUser = {
   id: string
@@ -29,6 +39,9 @@ export type SessionUser = {
   suc?: string
   bio?: string
   yearLevel?: string
+  dateOfBirth?: string
+  location?: string
+  changelog?: SettingsChangelog
 }
 
 export type Profile = {

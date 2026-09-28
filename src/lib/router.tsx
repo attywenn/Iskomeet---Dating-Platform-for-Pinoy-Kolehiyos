@@ -24,6 +24,8 @@ export function parseHash(hash: string): Route {
       return { name: 'search' }
     case 'profile':
       return { name: 'profile' }
+    case 'settings':
+      return { name: 'settings' }
     case 'chat':
       if (parts[1]) return { name: 'chat', userId: parts[1] }
       return { name: 'match' }

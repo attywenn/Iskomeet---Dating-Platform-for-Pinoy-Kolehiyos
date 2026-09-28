@@ -1,4 +1,3 @@
-import { PERSONA_REPLIES, PROFILES } from '../data/mock'
 import type { ChatMessage, Conversation, Profile, SessionUser } from './types'
 import { readJson, writeJson, removeKey } from './storage'
 
@@ -7,20 +6,67 @@ const LIKES_KEY = 'likes'
 const SESSION_KEY = 'session'
 const USERS_KEY = 'users'
 
+export type UserRead = {
+  user_id: number
+  user_username: string
+  account_created: string
+}
+
+export type UserCreate = {
+  user_username: string
+  user_password: string
+}
+
+export type AuthTokenResponse = {
+  access_token: string
+  token_type: string
+  user: UserRead
+}
+
 type StoredAccount = {
   username: string
   password: string
   profile: SessionUser
 }
 
+export type RegistrationPayload = {
+  username: string
+  password: string
+  livingFirstName: string
+  livingLastName: string
+  gender: string
+  school: string
+  city: string
+  lookingFor: string
+  interests: string
+  dateOfBirth: string
+}
+
 export function getSession(): SessionUser | null {
   return readJson<SessionUser | null>(SESSION_KEY, null)
 }
 
-export function signIn(username: string, password: string): SessionUser | null {
+export function getStoredAccounts(): StoredAccount[] {
+  return readJson<StoredAccount[]>(USERS_KEY, [])
+}
+
+export function updateStoredAccount(username: string, updatedProfile: SessionUser) {
+  const accounts = getStoredAccounts()
+  const next = accounts.map((entry) =>
+    entry.username.toLowerCase() === username.toLowerCase()
+      ? { ...entry, profile: updatedProfile }
+      : entry,
+  )
+  writeJson(USERS_KEY, next)
+}
+
+export async function signIn(username: string, password: string): Promise<SessionUser | null> {
+  // Local-only authentication against stored accounts
   const users = readJson<StoredAccount[]>(USERS_KEY, [])
   const match = users.find(
-    (entry) => entry.username.toLowerCase() === username.trim().toLowerCase() && entry.password === password,
+    (entry) =>
+      entry.username.toLowerCase() === username.trim().toLowerCase() &&
+      entry.password === password,
   )
 
   if (!match) return null
@@ -30,49 +76,52 @@ export function signIn(username: string, password: string): SessionUser | null {
   return sessionUser
 }
 
-export function register({
-  username,
-  password,
-  firstName,
-  lastName,
-  universityName,
-  suc,
-  program,
-}: {
-  username: string
-  password: string
-  firstName?: string
-  lastName?: string
-  universityName?: string
-  suc?: string
-  program?: string
-}): SessionUser {
-  const users = readJson<StoredAccount[]>(USERS_KEY, [])
-  const normalized = username.trim()
-  const duplicate = users.some((entry) => entry.username.toLowerCase() === normalized.toLowerCase())
+export async function register(data: RegistrationPayload): Promise<SessionUser> {
+  const accounts = readJson<StoredAccount[]>(USERS_KEY, [])
 
-  if (!normalized || !password || duplicate) {
-    throw new Error('Username already exists or missing required fields.')
+  // Check if username already taken
+  const exists = accounts.some(
+    (entry) => entry.username.toLowerCase() === data.username.toLowerCase(),
+  )
+  if (exists) {
+    throw new Error('Username is already taken.')
   }
 
-  const profile: SessionUser = {
+  const sessionUser: SessionUser = {
     id: crypto.randomUUID(),
-    username: normalized,
-    firstName,
-    lastName,
-    universityName,
-    suc,
-    program,
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80',
-    bio: 'Campus explorer looking for a meaningful connection.',
-    yearLevel: '1st Year',
-    interests: ['Reading', 'Music', 'Coffee', 'Travel'],
+    username: data.username.trim(),
+    firstName: data.livingFirstName.trim(),
+    lastName: data.livingLastName.trim(),
+    universityName: data.school.trim(),
+    suc: data.school.trim(),
+    location: data.city.trim(),
+    bio: `${data.lookingFor} in ${data.city.trim()}`,
+    interests: data.interests
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5),
+    dateOfBirth: data.dateOfBirth.trim(),
+    changelog: {},
   }
 
-  users.push({ username: normalized, password, profile })
-  writeJson(USERS_KEY, users)
-  writeJson(SESSION_KEY, profile)
-  return profile
+  writeJson(USERS_KEY, [
+    ...accounts,
+    {
+      username: data.username.trim(),
+      password: data.password,
+      profile: sessionUser,
+    },
+  ])
+
+  // NOTE: do NOT write SESSION_KEY here — user must log in separately
+  return sessionUser
+}
+
+export function updateSession(updatedUser: SessionUser) {
+  writeJson(SESSION_KEY, updatedUser)
+  // Also persist into stored accounts
+  updateStoredAccount(updatedUser.username, updatedUser)
 }
 
 export function signOut() {
@@ -80,11 +129,11 @@ export function signOut() {
 }
 
 export async function getProfiles(): Promise<Profile[]> {
-  return PROFILES
+  return []
 }
 
-export async function getProfile(id: string): Promise<Profile | undefined> {
-  return PROFILES.find((profile) => profile.id === id)
+export async function getProfile(_id: string): Promise<Profile | undefined> {
+  return undefined
 }
 
 export function getLikes(): string[] {
@@ -118,32 +167,9 @@ export function getConversation(userId: string): Conversation {
 
 export async function openConversation(
   userId: string,
-  meName: string,
-  them: Profile,
 ): Promise<Conversation> {
   const existing = getConversation(userId)
-  if (existing.messages.length > 0) return existing
-
-  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  const starter: Conversation = {
-    userId,
-    messages: [
-      {
-        id: crypto.randomUUID(),
-        from: 'me',
-        text: `Hello ${them.name.split(' ')[0]}. I am glad to meet someone from ${them.suc?.split(' ')[0] || 'campus'}.`,
-        timestamp: now,
-      },
-      {
-        id: crypto.randomUUID(),
-        from: 'them',
-        text: `Hello ${meName}. I am happy to meet someone from ${them.suc?.split(' ')[0] || 'campus'}. How are you today?`,
-        timestamp: now,
-      },
-    ],
-  }
-  saveConversation(starter)
-  return starter
+  return existing
 }
 
 export async function sendMessage(userId: string, text: string): Promise<Conversation> {
@@ -155,29 +181,6 @@ export async function sendMessage(userId: string, text: string): Promise<Convers
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }
   convo.messages = [...convo.messages, next]
-  saveConversation(convo)
-  return convo
-}
-
-export async function receiveReply(userId: string, _userMessageText?: string): Promise<Conversation> {
-  const convo = getConversation(userId)
-  const replies = PERSONA_REPLIES[userId] || [
-    'I agree. Campus life is busy, but it is also interesting.',
-    'I would enjoy a coffee run sometime when we are free.',
-    'I like that idea. Keep in touch and let me know when you are around campus.',
-  ]
-  const replyIndex = convo.messages.filter((m) => m.from === 'them').length % replies.length
-  const replyText = replies[replyIndex]
-
-  convo.messages = [
-    ...convo.messages,
-    {
-      id: crypto.randomUUID(),
-      from: 'them',
-      text: replyText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]
   saveConversation(convo)
   return convo
 }

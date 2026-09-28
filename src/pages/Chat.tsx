@@ -3,28 +3,20 @@ import {
   BackArrow,
   CheckCheckIcon,
   SendIcon,
-  SparklesIcon,
-  VerifiedBadgeIcon,
 } from '../components/icons'
 import * as api from '../lib/api'
 import { navigate } from '../lib/router'
 import { useSession } from '../lib/session'
-import type { ChatMessage, Profile } from '../lib/types'
+import type { ChatMessage, Conversation } from '../lib/types'
 
 type Props = {
   userId: string
 }
 
-const guestUserName = 'Guest Scholar'
-
 export function ChatPage({ userId }: Props) {
   const { user } = useSession()
-  const [profile, setProfile] = useState<Profile | undefined>()
-  const [allProfiles, setAllProfiles] = useState<Profile[]>([])
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [conversation, setConversation] = useState<Conversation>({ userId, messages: [] })
   const [draft, setDraft] = useState('')
-  const [typing, setTyping] = useState(false)
-  const [infoOpen, setInfoOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -38,63 +30,34 @@ export function ChatPage({ userId }: Props) {
     }
 
     void (async () => {
-      const [found, all] = await Promise.all([
-        api.getProfile(userId),
-        api.getProfiles(),
-      ])
-      setProfile(found)
-      setAllProfiles(all)
-      if (!found) return
-      const convo = await api.openConversation(userId, guestUserName, found)
-      setMessages(convo.messages)
+      const convo = await api.openConversation(userId)
+      setConversation(convo)
       setTimeout(scrollToBottom, 100)
     })()
   }, [user, userId])
 
-  if (!user) return null
-
   useEffect(() => {
     scrollToBottom()
-  }, [messages, typing])
+  }, [conversation.messages])
 
-  const profileCampus = profile?.universityName ?? profile?.suc ?? 'University'
+  if (!user) return null
 
   async function onSend(event: FormEvent) {
     event.preventDefault()
     const text = draft.trim()
-    if (!text || !profile) return
+    if (!text) return
     setDraft('')
 
     const convo = await api.sendMessage(userId, text)
-    setMessages(convo.messages)
-
-    setTyping(true)
-    const delay = 1200 + Math.random() * 800
-    window.setTimeout(() => {
-      void api
-        .receiveReply(userId, text)
-        .then((updated) => {
-          setMessages(updated.messages)
-        })
-        .finally(() => setTyping(false))
-    }, delay)
-  }
-
-  function handleSendIcebreaker(text: string) {
-    setDraft(text)
+    setConversation(convo)
   }
 
   function handleReaction(messageId: string, emoji: string) {
     const updated = api.reactToMessage(userId, messageId, emoji)
-    setMessages(updated.messages)
+    setConversation(updated)
   }
 
-  const icebreakers = [
-    'Would you like to take a short coffee break?',
-    'Do you have a favorite place around campus?',
-    'How is your week going so far?',
-    'What music are you listening to lately?',
-  ]
+  const messages: ChatMessage[] = conversation.messages
 
   return (
     <div className="relative flex h-full min-h-full flex-col bg-slate-50">
@@ -109,106 +72,22 @@ export function ChatPage({ userId }: Props) {
             <BackArrow className="h-5 w-5" />
           </button>
 
-          {profile ? (
-            <button
-              type="button"
-              onClick={() => setInfoOpen(!infoOpen)}
-              className="flex items-center gap-2.5 text-left rounded-xl p-1 hover:bg-slate-50 transition-colors"
-            >
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 shadow-sm">
-                <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" />
-                {profile.online ? (
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-                ) : null}
-              </div>
-
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="truncate text-sm font-bold text-slate-900">{profile.name}</span>
-                  {profile.verified ? <VerifiedBadgeIcon className="h-4 w-4 text-sky-500" /> : null}
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                  <span className="truncate max-w-[140px] text-brand-600 font-semibold">{profileCampus.split(' ')[0]}</span>
-                  <span>•</span>
-                  <span>{typing ? 'Typing...' : profile.online ? 'Active now' : profile.lastSeen || 'Offline'}</span>
-                </div>
-              </div>
-            </button>
-          ) : null}
+          <div className="min-w-0">
+            <span className="truncate text-sm font-bold text-slate-900">
+              Scholar #{userId.slice(0, 8)}
+            </span>
+            <p className="text-[11px] text-slate-400">Direct Message</p>
+          </div>
         </div>
-
-        {profile ? (
-          <button
-            type="button"
-            aria-label="View profile info"
-            onClick={() => setInfoOpen(!infoOpen)}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border text-xs font-bold transition-all ${
-              infoOpen
-                ? 'bg-brand-500 text-white border-brand-500 shadow-sm'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            ℹ
-          </button>
-        ) : null}
       </header>
 
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-100 bg-white/70 px-4 py-2 text-xs no-scrollbar">
-        <span className="shrink-0 font-bold uppercase tracking-wider text-[10px] text-slate-400">Scholars:</span>
-        {allProfiles.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => navigate({ name: 'chat', userId: p.id })}
-            className={`group relative flex shrink-0 items-center gap-1.5 rounded-full p-0.5 pr-2.5 transition-all ${
-              p.id === userId
-                ? 'bg-rose-100 text-brand-700 font-bold ring-2 ring-brand-500'
-                : 'hover:bg-slate-100 text-slate-600'
-            }`}
-          >
-            <img src={p.avatar} alt={p.name} className="h-6 w-6 rounded-full object-cover" />
-            <span className="text-[11px]">{p.name.split(' ')[0]}</span>
-            {p.online ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
-          </button>
-        ))}
-      </div>
-
-      {infoOpen && profile ? (
-        <div className="border-b border-slate-200 bg-white p-4 shadow-md transition-all">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">{profile.name}, {profile.age ?? 22}</h3>
-              <p className="text-xs text-brand-600 font-medium">{profileCampus}</p>
-              <p className="text-xs text-slate-500">{profile.program ?? 'Student'} • {profile.yearLevel ?? 'Student'}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate({ name: 'match' })}
-              className="rounded-xl bg-rose-50 px-2.5 py-1 text-xs font-bold text-brand-600 hover:bg-rose-100"
-            >
-              Full Card →
-            </button>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-slate-600 italic font-normal">&ldquo;{profile.bio ?? 'Student profile'}&rdquo;</p>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {profile.interests?.map((item) => (
-              <span key={item} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {profile ? (
-          <div className="my-2 flex flex-col items-center justify-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-white shadow-md">
-              <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" />
-            </div>
-            <p className="mt-2 text-xs font-bold text-slate-800">You matched with {profile.name}!</p>
-            <p className="text-[11px] text-slate-500">
-              Both of you represent Philippine State Scholars. Start with a warm greeting!
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center py-16">
+            <div className="text-4xl mb-3">💬</div>
+            <p className="text-sm font-bold text-slate-700">No messages yet</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Send the first message to start the conversation.
             </p>
           </div>
         ) : null}
@@ -238,7 +117,7 @@ export function ChatPage({ userId }: Props) {
               ) : null}
             </div>
 
-            {/* Bubble Meta (Timestamp & status) */}
+            {/* Bubble Meta */}
             <div className="mt-1 flex items-center gap-1.5 px-1 text-[10px] text-slate-400">
               <span>{message.timestamp || 'Just now'}</span>
               {message.from === 'me' ? (
@@ -247,12 +126,12 @@ export function ChatPage({ userId }: Props) {
 
               {/* Quick reaction on hover */}
               <div className="hidden group-hover:flex items-center gap-1 ml-2">
-                {['Like', 'Laugh', 'Fire'].map((emoji) => (
+                {['❤️', '😂', '🔥'].map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => handleReaction(message.id, emoji)}
-                    className="hover:scale-125 transition-transform text-[10px] font-semibold text-slate-500"
+                    className="hover:scale-125 transition-transform text-sm"
                   >
                     {emoji}
                   </button>
@@ -262,42 +141,7 @@ export function ChatPage({ userId }: Props) {
           </div>
         ))}
 
-        {/* Typing indicator */}
-        {typing ? (
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 overflow-hidden">
-              <img src={profile?.avatar} alt="Scholar avatar" className="h-full w-full object-cover" />
-            </div>
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-xs bg-white px-3.5 py-2.5 shadow-sm border border-slate-100">
-              <span className="typing-dot h-2 w-2 rounded-full bg-brand-500" />
-              <span className="typing-dot h-2 w-2 rounded-full bg-brand-500" />
-              <span className="typing-dot h-2 w-2 rounded-full bg-brand-500" />
-            </div>
-            <span className="text-[11px] font-medium text-slate-400">{profile?.name.split(' ')[0]} is typing...</span>
-          </div>
-        ) : null}
-
         <div ref={messagesEndRef} />
-      </div>
-
-      {/* Suggested Icebreakers Bar */}
-      <div className="border-t border-slate-100 bg-white/80 px-3 py-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          <span className="flex items-center gap-1 shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-600">
-            <SparklesIcon className="h-3.5 w-3.5" />
-            Icebreakers:
-          </span>
-          {icebreakers.map((item, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSendIcebreaker(item)}
-              className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:border-rose-300 hover:bg-rose-50 hover:text-brand-600 transition-colors"
-            >
-              {item}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Input Form */}
@@ -306,7 +150,7 @@ export function ChatPage({ userId }: Props) {
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={`Message ${profile?.name.split(' ')[0] || 'scholar'}...`}
+            placeholder="Type a message…"
             className="w-full bg-transparent py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400"
           />
 

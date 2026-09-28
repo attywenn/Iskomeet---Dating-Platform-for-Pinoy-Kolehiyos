@@ -1,6 +1,7 @@
 import { navigate } from '../lib/router'
 import { FlameIcon, SearchIcon, UserIcon, CapIcon, CloseIcon, CoffeeIcon } from './icons'
-import { APP_NAME } from '../data/mock'
+import { APP_NAME } from '../data/site-content'
+import { useSession } from '../lib/session'
 
 function toggleTheme() {
   const root = document.documentElement
@@ -16,7 +17,15 @@ type Props = {
 }
 
 export function MenuDrawer({ open, onClose }: Props) {
+  const { user, signOut } = useSession()
+
   if (!open) return null
+
+  function handleLogout() {
+    signOut()
+    navigate({ name: 'landing' })
+    onClose()
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true">
@@ -54,6 +63,18 @@ export function MenuDrawer({ open, onClose }: Props) {
             </button>
           </div>
         </div>
+
+        {user && (
+          <div className="border-b border-slate-100 px-5 py-3 dark:border-slate-800">
+            <p className="text-xs font-semibold text-slate-400">Logged in as</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+              {user.firstName && user.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : user.username}
+            </p>
+            <p className="text-xs text-brand-600">@{user.username}</p>
+          </div>
+        )}
 
         <nav className="flex-1 overflow-y-auto px-4 py-6">
           <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Navigation</p>
@@ -101,7 +122,16 @@ export function MenuDrawer({ open, onClose }: Props) {
           </div>
         </nav>
 
-        <div className="border-t border-slate-100 p-4">
+        <div className="border-t border-slate-100 p-4 space-y-2">
+          {user && (
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-100 transition-colors"
+              onClick={handleLogout}
+            >
+              Log out
+            </button>
+          )}
           <button
             type="button"
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors"

@@ -13,6 +13,7 @@ type SessionContextValue = {
   user: SessionUser | null
   refresh: () => void
   signOut: () => void
+  updateUser: (updated: SessionUser) => void
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null)
@@ -29,7 +30,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
-  const value = useMemo(() => ({ user, refresh, signOut }), [user, refresh, signOut])
+  const updateUser = useCallback((updated: SessionUser) => {
+    api.updateSession(updated)
+    setUser(updated)
+  }, [])
+
+  const value = useMemo(
+    () => ({ user, refresh, signOut, updateUser }),
+    [user, refresh, signOut, updateUser],
+  )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
 }

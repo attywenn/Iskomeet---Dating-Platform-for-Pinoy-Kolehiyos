@@ -12,7 +12,7 @@ import {
   StarSparkIcon,
   VerifiedBadgeIcon,
 } from '../components/icons'
-import { APP_NAME, SUC_COLORS } from '../data/mock'
+import { APP_NAME, SUC_COLORS } from '../data/site-content'
 import * as api from '../lib/api'
 import { navigate } from '../lib/router'
 import { useSession } from '../lib/session'
@@ -425,12 +425,8 @@ function MatchCelebrationModal({
         </p>
 
         <div className="my-6 flex items-center justify-center">
-          <div className="relative -mr-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl">
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=800&q=80"
-              alt="You"
-              className="h-full w-full object-cover"
-            />
+          <div className="relative -mr-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl bg-brand-500 flex items-center justify-center">
+            <span className="text-xl font-black text-white">You</span>
           </div>
           <div className="z-10 flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-white font-bold shadow-lg ring-4 ring-slate-900">
             Like

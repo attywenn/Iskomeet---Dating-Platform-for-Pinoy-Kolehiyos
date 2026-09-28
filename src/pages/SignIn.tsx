@@ -1,26 +1,45 @@
-import { useState } from "react"; 
-import * as api from "../lib/api";
-import { navigate } from "../lib/router";                                                                                 
-import { useSession } from "../lib/session";
+import { useState } from 'react'
+import * as api from '../lib/api'
+import { navigate } from '../lib/router'
+import { useSession } from '../lib/session'
 
 export function SignInPage() {
-  const { refresh } = useSession();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const { refresh } = useSession()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Modal state
+  const [successModal, setSuccessModal] = useState(false)
+  const [failModal, setFailModal] = useState(false)
+  const [failMessage, setFailMessage] = useState('')
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
+    event.preventDefault()
 
-    const user = api.signIn(username, password);
-    if (!user) {
-      setError("That account does not exist yet. Create one first.");
-      return;
+    if (!username.trim() || !password) {
+      setFailMessage('Please enter your username and password.')
+      setFailModal(true)
+      return
     }
 
-    refresh();
-    navigate({ name: "match" });
+    setIsSubmitting(true)
+    try {
+      const user = await api.signIn(username.trim(), password)
+      if (!user) {
+        setFailMessage('Incorrect username or password. Please try again.')
+        setFailModal(true)
+        return
+      }
+
+      refresh()
+      setSuccessModal(true)
+    } catch {
+      setFailMessage('Something went wrong. Please try again.')
+      setFailModal(true)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -28,7 +47,7 @@ export function SignInPage() {
       <div className="w-full max-w-sm rounded-[28px] border border-slate-200 bg-white p-6 shadow-lg shadow-slate-200/50">
         <div className="mb-6 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-brand-600">
-            Welcome back
+            ISKOMEET | <span className="text-black">ACCOUNTS</span>
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">
             Log in
@@ -73,32 +92,28 @@ export function SignInPage() {
             />
           </div>
 
-          {error ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-              {error}
-            </p>
-          ) : null}
-
           <button
             type="submit"
-            className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600"
+            disabled={isSubmitting}
+            className="w-full rounded-2xl bg-brand-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            Log in
+            {isSubmitting ? 'Logging in…' : 'Log in'}
           </button>
         </form>
+
         <div className="mt-5 text-center text-xs text-slate-500">
-          Don&apos;t have an account?{" "}
+          Don&apos;t have an account?{' '}
           <button
             type="button"
-            onClick={() => navigate({ name: "register" })}
+            onClick={() => navigate({ name: 'register' })}
             className="font-bold text-brand-600 underline-offset-2 hover:underline"
           >
-            Register here 
+            Register here
           </button>
           <div className="flex justify-center items-center">
             <button
               type="button"
-              onClick={() => navigate({ name: "landing"})}
+              onClick={() => navigate({ name: 'landing' })}
               className="mt-2 text-xs text-brand-500 font-bold hover:underline"
             >
               Back to home
@@ -106,6 +121,61 @@ export function SignInPage() {
           </div>
         </div>
       </div>
+
+      {/* ===== SUCCESS MODAL ===== */}
+      {successModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-[320px] rounded-3xl bg-white p-7 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-2xl">
+              ✓
+            </div>
+            <h2 className="mt-4 text-xl font-black text-slate-900">Welcome back!</h2>
+            <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+              You have successfully logged in to Iskomeet.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSuccessModal(false)
+                navigate({ name: 'match' })
+              }}
+              className="mt-6 w-full rounded-2xl bg-brand-500 py-3 text-sm font-bold text-white hover:bg-brand-600 transition-colors"
+            >
+              Start Exploring
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ===== FAILURE MODAL ===== */}
+      {failModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-[320px] rounded-3xl bg-white p-7 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-rose-600 text-2xl">
+              ✕
+            </div>
+            <h2 className="mt-4 text-xl font-black text-slate-900">Login Failed</h2>
+            <p className="mt-2 text-sm text-slate-500 leading-relaxed">
+              {failMessage}
+            </p>
+            <button
+              type="button"
+              onClick={() => setFailModal(false)}
+              className="mt-6 w-full rounded-2xl bg-rose-500 py-3 text-sm font-bold text-white hover:bg-rose-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }

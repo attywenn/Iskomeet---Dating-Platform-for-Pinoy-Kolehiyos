@@ -30,6 +30,7 @@ function Screen() {
     case 'chat':
       return <ChatPage userId={route.userId} />
     case 'profile':
+    case 'settings':
       return <ProfilePage />
     case 'about':
       return <AboutPage />
